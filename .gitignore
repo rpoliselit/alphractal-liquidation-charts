@@ -1,0 +1,43 @@
+# --- secrets --------------------------------------------------------------
+src/liquidation_dashboard/api_key.py
+api_key.py
+.env
+
+# --- logos and other brand assets ----------------------------------------
+assets/
+*.svg
+
+# --- local Parquet database and exports ----------------------------------
+liquidation_db/
+liquidation_exports/
+*.parquet
+*.parquet.tmp
+
+# --- figures / images -----------------------------------------------------
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.pdf
+figs/
+
+# --- old copies -----------------------------------------------------------
+*_old.py
+*_old.*
+
+# --- python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# --- editors / OS ---------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
