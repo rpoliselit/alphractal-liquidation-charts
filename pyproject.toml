@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alphractal-liquidation-charts"
+version = "2.0.0"
+description = "Local dashboard that fetches Alphractal liquidation-level heatmaps, caches them in Parquet and exports branded charts."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dash>=3,<5",
+    "numpy>=1.26,<3",
+    "requests>=2.32,<3",
+    "pyarrow>=15",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pyflakes>=3"]
+
+[project.scripts]
+alphractal-liquidation-charts = "liquidation_dashboard.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
