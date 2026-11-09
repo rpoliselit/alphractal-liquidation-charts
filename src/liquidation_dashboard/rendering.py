@@ -12,6 +12,7 @@ from .api import APIError, timestamp
 from .branding import brand_logo_uri
 from .config import BRAND, chart_title
 from .frontend import CANVAS_CONTROLLER, CANVAS_RENDERER, LOGOS, SVG_CONTEXT, VIEW_CONTROLS
+from .themes import get_theme
 
 
 def grid_metrics(payload):
@@ -58,14 +59,16 @@ def export_stem(payload, demo=False) -> str:
     return 'liquidation-levels-' + ('demo-' if demo else '') + '-'.join(parts)
 
 
-def canvas_document(payload=None, palette='inferno', smoothing='false', threshold=0, threshold_max=100, theme='dark', demo=False, title=None, prepared_for=None, logo=None):
+def canvas_document(payload=None, palette='inferno', smoothing='false', threshold=0, threshold_max=100, theme=None, demo=False, title=None, prepared_for=None, logo=None):
+    """Self-contained chart HTML. ``theme`` is a name from ``themes.THEMES`` (None = default)."""
+    colors = get_theme(theme)
     if not payload:
-        return '<!doctype html><html><body style="background:#0b0f19;color:#8b8fa3;font:14px system-ui;display:grid;place-items:center;height:650px;margin:0">Conecte sua chave e carregue uma série, ou abra a demonstração.</body></html>'
+        return f'<!doctype html><html><body style="background:{colors.background};color:{colors.text};font:14px system-ui;display:grid;place-items:center;height:650px;margin:0">Conecte sua chave e carregue uma série, ou abra a demonstração.</body></html>'
     if len(payload['y']) < 2:
         raise APIError('O desenho Canvas requer pelo menos dois níveis de preço.')
-    config = {'data': frontend_data(payload, threshold, threshold_max), 'palette': palette, 'smoothing': smoothing, 'theme': theme, 'logo': LOGOS['light' if theme == 'light' else 'dark'], 'title': (title or '').strip() or chart_title(payload), 'demo': demo,
+    config = {'data': frontend_data(payload, threshold, threshold_max), 'palette': palette, 'smoothing': smoothing, 'themeName': colors.name, 'theme': colors.to_config(), 'logo': LOGOS[colors.logo], 'title': (title or '').strip() or chart_title(payload), 'demo': demo,
               'brand': {'preparedFor': (BRAND['prepared_for'] if prepared_for is None else prepared_for).strip(), 'copyright': BRAND['copyright'], 'source': BRAND['source'], 'logo': brand_logo_uri(logo)}}
-    bg, fg = ('#0b0f19','#c5cad7') if theme == 'dark' else ('#f5f6f9','#374151')
+    bg, fg = colors.background, colors.text_heading
     caption = ('DEMONSTRAÇÃO SINTÉTICA · ' if demo else '') + config['title']
     config['subtitle'] = ('DEMONSTRAÇÃO · DADOS SINTÉTICOS · ' if demo else '') + f"{payload.get('timeframe', '')} · {payload.get('exchange') or 'All exchanges'} · USD"
     config['caption'] = caption

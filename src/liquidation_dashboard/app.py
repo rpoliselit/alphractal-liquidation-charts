@@ -14,6 +14,7 @@ from .config import BRAND, DEFAULT_SERIES, chart_title, db_dir, forget_api_key, 
 from .frontend import PALETTES
 from .rendering import canvas_document, demo_payload, export_stem, grid_metrics
 from .storage import asset_label, asset_options, catalog_load, catalog_save, db_entries, db_load, db_path, db_save, db_series_options, known_assets, save_export, save_html_export
+from .themes import DEFAULT_THEME, theme_options
 
 
 CSS = '''
@@ -67,7 +68,7 @@ def create_app(demo=False, port=8056):
                 html.Div([html.Label('Color Scale'), dcc.Dropdown(id='palette', options=[{'label':v.title(),'value':v} for v in PALETTES], value='inferno', clearable=False)]),
                 html.Div([html.Label('Smoothing'), dcc.Dropdown(id='smoothing', options=[{'label':'True','value':'best'},{'label':'False','value':'false'}],value='false',clearable=False)]),
                 html.Div([html.Label('Threshold · Min / Max %'), html.Div(className='threshold-pair',children=[dcc.Input(id='threshold',type='number',min=0,max=100,value=0,debounce=True),dcc.Input(id='threshold-max',type='number',min=0,max=100,value=100,debounce=True)])]),
-                html.Div([html.Label('Theme'),dcc.Dropdown(id='theme',options=[{'label':'Dark','value':'dark'},{'label':'Light','value':'light'}],value='dark',clearable=False)]),
+                html.Div([html.Label('Theme'),dcc.Dropdown(id='theme',options=theme_options(),value=DEFAULT_THEME,clearable=False)]),
                 html.Button('↻ Carregar', id='load', className='primary', title='Usa o banco local se a série existir; senão baixa da API e grava'),
                 html.Button('⇣ Baixar da API', id='download', title='Sempre consulta a API e sobrescreve a série no banco local')]),
                 html.Div(className='toolbar branding', children=[

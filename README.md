@@ -21,6 +21,7 @@ alphractal-liquidation-charts/     # project root: open this folder in your edit
 │       ├── rendering.py           # data preparation and the chart HTML document
 │       ├── frontend.py            # embedded JavaScript (canvas renderer, SVG backend, controller)
 │       ├── branding.py            # logo discovery / embedding
+│       ├── themes.py              # the three chart themes (colors and title font)
 │       ├── config.py              # paths, brand texts, constants
 │       └── api_key.py             # alphractal_key = "..."  — git-ignored, written by the app
 ├── tests/                         # pytest suite
@@ -88,7 +89,8 @@ once, the lookback list is empty, because only the API knows which `(timeframe, 
    selected nothing is drawn in the logo box.
 5. **PNG ↓ / SVG ↓ / Salvar gráfico HTML** — written to `liquidation_exports/` with a timestamped name
    (`liquidation-levels-btc-2y-6h-YYYYMMDD-HHMMSS.png`). Existing files are never overwritten.
-   PNG and SVG exports have a transparent background, like `plot_alphractal` with `background_alpha=0`.
+   As in `printable_plot`, the Alphractal themes export with their background and the *Classic* theme
+   exports with a transparent background (see [Themes](#themes)).
 
 Any API failure (missing or wrong key, network) is reported in the status line under the key field and
 never clears what the dropdowns already show.
@@ -101,21 +103,36 @@ never clears what the dropdowns already show.
 | Carregar with a local file | 0 |
 | Carregar without a local file / Baixar da API | 1 × `GET /liquidation_levels/heatmap` |
 
+## Themes
+
+The **Theme** dropdown offers the same three themes as `printable_plot`:
+
+| Theme | Look | PNG/SVG export background |
+|---|---|---|
+| **Alphractal Dark** (`alphractal_dark`, default) | Alphractal platform, dark mode: navy `#0F1729`, white/slate text, sans-serif title | navy |
+| **Alphractal Light** (`alphractal_light`) | Alphractal platform, light mode: white, near-black/slate text, sans-serif title | white |
+| **Classic** (`classic`) | the original warm "paper" look: `#241E18` text, serif title | transparent |
+
+All theme colors live in `src/liquidation_dashboard/themes.py`; the JavaScript renderer reads them as tokens
+(`t.text`, `t.grid`, …) instead of hard-coded colors. Long/short green and red, the candles and the heatmap
+color scales are data colors and are the same in every theme. The former values `dark` and `light` still work
+(they map to the Alphractal themes), and `canvas_document(theme=None)` uses the default theme.
+
 ## Branding geometry
 
 The footer follows `plot_alphractal` on a 16:9 figure (figure fractions, bottom-left origin):
 
 | Element | Position | Font |
 |---|---|---|
-| Title | `x=0.075`, top at `0.955` | 23 pt STIXGeneral bold, `#241E18` |
-| Subtitle | `x=0.075`, top at `0.895` | 10 pt, `#887767` |
+| Title | `x=0.075`, top at `0.955` | 23 pt bold: STIXGeneral (Classic) or DejaVu Sans (Alphractal themes) |
+| Subtitle | `x=0.075`, top at `0.895` | 10 pt |
 | `Source: Alphractal.` | `x=0.075`, bottom at `0.085` | 11 pt DejaVu Sans, bold label |
 | `Prepared for: … \| Copyright: …` | `x=0.075`, bottom at `0.025` | 12 pt DejaVu Sans, bold labels |
 | Logo | `logo_box = (0.83, 0.025, 0.14, 0.065)` | aspect-fit |
 
 Point sizes are scaled from the Matplotlib figure width (1152 pt), so proportions are kept at any canvas width.
-In the dark theme the text colours are lightened for contrast; the light theme uses the exact colours above.
-For a pixel-exact title font install *STIX Two Text* on your system; otherwise the browser falls back to Times.
+Text colors come from the selected theme (see [Themes](#themes)).
+For a pixel-exact Classic title font install *STIX Two Text* on your system; otherwise the browser falls back to Times.
 
 Brand texts and folder names live in `src/liquidation_dashboard/config.py` (`BRAND`). To pre-fill a client
 for a fixed deployment set `BRAND['prepared_for']` and `BRAND['logo_file']` there; the UI fields still

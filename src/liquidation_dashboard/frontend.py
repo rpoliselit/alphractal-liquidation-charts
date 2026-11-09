@@ -8,6 +8,8 @@ LOGOS = {"dark":"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTY1IiBoZWlnaHQ9IjI0N
 
 # Drawing routines from FrontEnd_V2 @ 4bfe313cca9c (2026-10-03).
 # TypeScript types removed at build time; no Node/React dependency at runtime.
+# Local change: the `isDark ? a : b` colors were replaced by theme tokens (`t.text`, `t.grid`, ...) from
+# themes.py; keep that when syncing with FrontEnd_V2.
 PALETTES = ["inferno","viridis","plasma","magma","hot","cividis","spectral","blackbody","bluered","blues","earth","electric","greens","greys","picnic","portland","rainbow","rdbu","reds","ylgn","ylgnbu","ylorbr","ylorrd","jet"]
 CANVAS_RENDERER = r"""
 const arrayMax = values => { let m = -Infinity; for (const v of values) if (v > m) m = v; return m; };
@@ -125,17 +127,11 @@ function computeLayout(w, h) {
 }
 const FONT = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 const FONT_SMALL = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-const BG_DARK = "#0b0f19";
-const BG_LIGHT = "#f5f6f9";
 function getLiquidationCanvasPixelRatio(screenshotState) {
     if (screenshotState?.pixelRatio)
         return screenshotState.pixelRatio;
     return typeof window === "undefined" ? 1 : window.devicePixelRatio || 1;
 }
-const TEXT_DARK = "#8b8fa3";
-const TEXT_LIGHT = "#6b7280";
-const GRID_DARK = "rgba(255,255,255,0.06)";
-const GRID_LIGHT = "rgba(0,0,0,0.08)";
 const GREEN = "#0D9276";
 const RED = "#DF1C41";
 function buildHeatmapCache(data, lut) {
@@ -232,7 +228,7 @@ function drawCandlesticks(ctx, data, r, viewStart, viewEnd, yStart, yEnd) {
     }
     ctx.restore();
 }
-function drawCurrentPriceLine(ctx, data, r, yStart, yEnd, isDark) {
+function drawCurrentPriceLine(ctx, data, r, yStart, yEnd, t) {
     const { currentPrice, yValues } = data;
     const fullYMin = yValues[0];
     const fullYMax = yValues[yValues.length - 1];
@@ -244,20 +240,20 @@ function drawCurrentPriceLine(ctx, data, r, yStart, yEnd, isDark) {
         return;
     ctx.save();
     ctx.setLineDash([4, 3]);
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)";
+    ctx.strokeStyle = t.price_line;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(r.x, py);
     ctx.lineTo(r.x + r.w, py);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.85)" : "rgba(0,0,0,0.85)";
+    ctx.fillStyle = t.price_label;
     ctx.font = FONT_SMALL;
     ctx.textAlign = "left";
     ctx.fillText(formatPrice(currentPrice), r.x + r.w + 4, py + 3);
     ctx.restore();
 }
-function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
+function drawRightPanel(ctx, data, r, t, yStart, yEnd) {
     const { liqByPrice, yValues, currentPrice, longsAccumByPrice, shortsAccumByPrice, totalLongsSum, totalShortsSum, } = data;
     const numP = yValues.length;
     const fullYMin = yValues[0];
@@ -295,19 +291,19 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     ctx.beginPath();
     ctx.rect(r.x, r.y, r.w, r.h);
     ctx.clip();
-    ctx.fillStyle = isDark ? "rgba(11,15,25,0.5)" : "rgba(245,245,250,0.5)";
+    ctx.fillStyle = t.side_panel_bg;
     ctx.fillRect(r.x, r.y, r.w, r.h);
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.09)" : "rgba(0,0,0,0.09)";
+    ctx.strokeStyle = t.panel_border;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1, 4);
     ctx.stroke();
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.055)" : "rgba(0,0,0,0.055)";
+    ctx.strokeStyle = t.divider;
     ctx.beginPath();
     ctx.moveTo(r.x + 4, summaryY + 1);
     ctx.lineTo(r.x + r.w - 4, summaryY + 1);
     ctx.stroke();
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    ctx.strokeStyle = t.hairline;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(r.x, r.y);
@@ -317,7 +313,7 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     const longPct = total > 0 ? totalLongsSum / total : 0.5;
     const shortPct = 1 - longPct;
     ctx.font = '10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = isDark ? "#c5cad7" : "#374151";
+    ctx.fillStyle = t.text_heading;
     ctx.textAlign = "center";
     ctx.fillText("Liquidation Distribution", r.x + r.w / 2, summaryY + 13);
     const valueY = summaryY + 34;
@@ -326,9 +322,9 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     ctx.textAlign = "left";
     ctx.fillText(formatCompactUSD(totalLongsSum), r.x + 5, valueY);
     ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = isDark ? "#f1f5f9" : "#111827";
+    ctx.fillStyle = t.text_strong;
     ctx.textAlign = "center";
-    ctx.shadowColor = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.10)";
+    ctx.shadowColor = t.glow;
     ctx.shadowBlur = 2;
     ctx.fillText(formatPrice(currentPrice), r.x + r.w / 2, valueY + 1);
     ctx.shadowBlur = 0;
@@ -340,7 +336,7 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     const ratioY = summaryY + 43;
     const ratioW = r.w - 12;
     const ratioH = 6;
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    ctx.fillStyle = t.hairline;
     ctx.beginPath();
     ctx.roundRect(ratioX, ratioY, ratioW, ratioH, 3);
     ctx.fill();
@@ -359,7 +355,7 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     ctx.fillStyle = RED;
     ctx.textAlign = "right";
     ctx.fillText(`${Math.round(shortPct * 100)}%`, r.x + r.w - 6, summaryY + 64);
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.018)" : "rgba(0,0,0,0.018)";
+    ctx.fillStyle = t.subtle_fill;
     ctx.fillRect(chartBodyX, chartAreaY, chartBodyW, chartAreaH);
     const mapPriceToY = (price) => chartAreaY + chartAreaH * (1 - (price - yMin) / (yMax - yMin));
     ctx.save();
@@ -384,7 +380,7 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     ctx.globalAlpha = 1;
     const cpY = mapPriceToY(currentPrice);
     if (cpY >= chartAreaY && cpY <= chartAreaY + chartAreaH) {
-        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.24)" : "rgba(0,0,0,0.18)";
+        ctx.strokeStyle = t.marker_line;
         ctx.lineWidth = 1;
         ctx.setLineDash([2, 2]);
         ctx.beginPath();
@@ -439,7 +435,7 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
         const maxTagX = r.x + r.w - tagW - 2;
         const tagX = maxTagX < minTagX ? minTagX : Math.max(minTagX, Math.min(maxTagX, rawX));
         const tagY = Math.max(chartAreaY + 2, Math.min(chartAreaY + chartAreaH - tagH - 2, y - tagH / 2));
-        ctx.fillStyle = isDark ? "rgba(11,15,25,0.82)" : "rgba(245,246,249,0.86)";
+        ctx.fillStyle = t.tag_bg;
         ctx.strokeStyle = color;
         ctx.lineWidth = 0.8;
         ctx.beginPath();
@@ -466,7 +462,7 @@ function drawRightPanel(ctx, data, r, isDark, yStart, yEnd) {
     }
     ctx.restore();
 }
-function drawAccumPanel(ctx, data, r, viewStart, viewEnd, isDark) {
+function drawAccumPanel(ctx, data, r, viewStart, viewEnd, t) {
     const { totalLongs, totalShorts, timestamps } = data;
     const startIdx = Math.floor(viewStart * timestamps.length);
     const endIdx = Math.ceil(viewEnd * timestamps.length);
@@ -480,7 +476,7 @@ function drawAccumPanel(ctx, data, r, viewStart, viewEnd, isDark) {
     ctx.beginPath();
     ctx.rect(r.x, r.y, r.w, r.h);
     ctx.clip();
-    const panelBg = isDark ? "rgba(11,15,25,0.8)" : "rgba(255,255,255,0.8)";
+    const panelBg = t.panel_bg;
     ctx.fillStyle = panelBg;
     ctx.fillRect(r.x, r.y, r.w, r.h);
     const mapX = (i) => r.x + ((i) / visible) * r.w;
@@ -501,13 +497,13 @@ function drawAccumPanel(ctx, data, r, viewStart, viewEnd, isDark) {
     };
     drawArea(shortsSlice, RED, "rgba(223,28,65,0.12)");
     drawArea(longsSlice, GREEN, "rgba(13,146,118,0.12)");
-    ctx.fillStyle = isDark ? TEXT_DARK : TEXT_LIGHT;
+    ctx.fillStyle = t.text;
     ctx.font = FONT_SMALL;
     ctx.textAlign = "right";
     ctx.fillText(formatCompactUSD(maxVal), r.x + r.w - 2, r.y + 10);
     ctx.restore();
 }
-function drawDeltaPanel(ctx, data, r, viewStart, viewEnd, isDark) {
+function drawDeltaPanel(ctx, data, r, viewStart, viewEnd, t) {
     const { netDelta, timestamps } = data;
     const startIdx = Math.floor(viewStart * timestamps.length);
     const endIdx = Math.ceil(viewEnd * timestamps.length);
@@ -520,7 +516,7 @@ function drawDeltaPanel(ctx, data, r, viewStart, viewEnd, isDark) {
     ctx.beginPath();
     ctx.rect(r.x, r.y, r.w, r.h);
     ctx.clip();
-    const panelBg = isDark ? "rgba(11,15,25,0.8)" : "rgba(255,255,255,0.8)";
+    const panelBg = t.panel_bg;
     ctx.fillStyle = panelBg;
     ctx.fillRect(r.x, r.y, r.w, r.h);
     const midY = r.y + r.h / 2;
@@ -539,7 +535,7 @@ function drawDeltaPanel(ctx, data, r, viewStart, viewEnd, isDark) {
         }
     }
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = isDark ? GRID_DARK : GRID_LIGHT;
+    ctx.strokeStyle = t.grid;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(r.x, midY);
@@ -547,9 +543,9 @@ function drawDeltaPanel(ctx, data, r, viewStart, viewEnd, isDark) {
     ctx.stroke();
     ctx.restore();
 }
-function drawAxes(ctx, data, layout, viewStart, viewEnd, yStart, yEnd, isDark) {
+function drawAxes(ctx, data, layout, viewStart, viewEnd, yStart, yEnd, t) {
     const { yValues, timestamps, timeStrings } = data;
-    const textColor = isDark ? TEXT_DARK : TEXT_LIGHT;
+    const textColor = t.text;
     ctx.font = FONT_SMALL;
     ctx.fillStyle = textColor;
     const r = layout.heatmap;
@@ -568,7 +564,7 @@ function drawAxes(ctx, data, layout, viewStart, viewEnd, yStart, yEnd, isDark) {
             continue;
         ctx.fillStyle = textColor;
         ctx.fillText(formatPrice(price), r.x + r.w + 4, py + 3);
-        ctx.strokeStyle = isDark ? GRID_DARK : GRID_LIGHT;
+        ctx.strokeStyle = t.grid;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(r.x, py);
@@ -591,7 +587,7 @@ function drawAxes(ctx, data, layout, viewStart, viewEnd, yStart, yEnd, isDark) {
         ctx.fillText(label, px, bottomY + 10);
     }
 }
-function drawColorBar(ctx, maxZ, lut, r, isDark, hoverY) {
+function drawColorBar(ctx, maxZ, lut, r, t, hoverY) {
     const labelPad = 14;
     const barW = 14;
     const bx = r.x + (r.w - barW) / 2;
@@ -608,26 +604,26 @@ function drawColorBar(ctx, maxZ, lut, r, isDark, hoverY) {
         ctx.fillRect(bx, barTop + py, barW, 1);
     }
     ctx.restore();
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    ctx.strokeStyle = t.hairline;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.roundRect(bx, barTop, barW, barH, 3);
     ctx.stroke();
     ctx.font = FONT_SMALL;
-    ctx.fillStyle = isDark ? TEXT_DARK : TEXT_LIGHT;
+    ctx.fillStyle = t.text;
     ctx.textAlign = "center";
     ctx.fillText(formatCompactUSD(maxZ), bx + barW / 2, barTop - 3);
     ctx.fillText("$0", bx + barW / 2, barTop + barH + 10);
     if (hoverY !== undefined && hoverY >= barTop && hoverY <= barTop + barH) {
         const t = 1 - (hoverY - barTop) / barH;
         const val = t * maxZ;
-        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)";
+        ctx.strokeStyle = t.hover_line;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(bx - 2, hoverY);
         ctx.lineTo(bx + barW + 2, hoverY);
         ctx.stroke();
-        ctx.fillStyle = isDark ? "rgba(255,255,255,0.9)" : "rgba(0,0,0,0.9)";
+        ctx.fillStyle = t.hover_marker;
         ctx.beginPath();
         ctx.moveTo(bx + barW + 3, hoverY);
         ctx.lineTo(bx + barW + 7, hoverY - 3);
@@ -635,22 +631,22 @@ function drawColorBar(ctx, maxZ, lut, r, isDark, hoverY) {
         ctx.closePath();
         ctx.fill();
         ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillStyle = isDark ? "#e4e6eb" : "#111827";
+        ctx.fillStyle = t.text_value;
         ctx.textAlign = "left";
         ctx.fillText(formatCompactUSD(val), bx + barW + 9, hoverY + 3);
     }
 }
-function drawPanelLabels(ctx, layout, isDark) {
+function drawPanelLabels(ctx, layout, t) {
     ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = isDark ? "#a0a8c0" : "#555";
+    ctx.fillStyle = t.text_label;
     ctx.textAlign = "left";
     ctx.fillText("Accumulated Longs vs Shorts", layout.accumPanel.x, layout.accumPanel.y - 4);
     ctx.fillText("Net Longs \u2212 Shorts", layout.deltaPanel.x, layout.deltaPanel.y - 4);
 }
-function drawCrosshair(ctx, mx, my, r, isDark) {
+function drawCrosshair(ctx, mx, my, r, t) {
     ctx.save();
     ctx.setLineDash([3, 3]);
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.16)";
+    ctx.strokeStyle = t.crosshair;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(mx, r.y);
@@ -663,18 +659,18 @@ function drawCrosshair(ctx, mx, my, r, isDark) {
     ctx.setLineDash([]);
     ctx.restore();
 }
-function drawScrollbar(ctx, r, viewStart, viewEnd, isDark) {
-    ctx.fillStyle = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)";
+function drawScrollbar(ctx, r, viewStart, viewEnd, t) {
+    ctx.fillStyle = t.scroll_track;
     ctx.beginPath();
     ctx.roundRect(r.x, r.y, r.w, r.h, 4);
     ctx.fill();
     const hx = r.x + viewStart * r.w;
     const hw = (viewEnd - viewStart) * r.w;
-    ctx.fillStyle = isDark ? "rgba(75,107,255,0.2)" : "rgba(75,107,255,0.15)";
+    ctx.fillStyle = t.scroll_thumb;
     ctx.beginPath();
     ctx.roundRect(hx, r.y + 2, hw, r.h - 4, 3);
     ctx.fill();
-    ctx.fillStyle = "rgba(75,107,255,0.5)";
+    ctx.fillStyle = t.scroll_handle;
     ctx.beginPath();
     ctx.roundRect(hx, r.y + 2, 4, r.h - 4, 2);
     ctx.fill();
@@ -682,7 +678,7 @@ function drawScrollbar(ctx, r, viewStart, viewEnd, isDark) {
     ctx.roundRect(hx + hw - 4, r.y + 2, 4, r.h - 4, 2);
     ctx.fill();
 }
-function drawKeyLevels(ctx, data, r, isDark) {
+function drawKeyLevels(ctx, data, r, t) {
     if (r.h < 40)
         return;
     const { yValues, zMatrix, timestamps, currentPrice } = data;
@@ -704,9 +700,9 @@ function drawKeyLevels(ctx, data, r, isDark) {
     ctx.beginPath();
     ctx.rect(r.x, r.y, r.w, r.h);
     ctx.clip();
-    ctx.fillStyle = isDark ? "rgba(11,15,25,0.5)" : "rgba(245,245,250,0.5)";
+    ctx.fillStyle = t.side_panel_bg;
     ctx.fillRect(r.x, r.y, r.w, r.h);
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    ctx.strokeStyle = t.hairline;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(r.x, r.y);
@@ -736,11 +732,11 @@ function drawKeyLevels(ctx, data, r, isDark) {
     const pad = 6;
     let cy = r.y + 2;
     ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    ctx.fillStyle = isDark ? "#a0a8c0" : "#555";
+    ctx.fillStyle = t.text_label;
     ctx.textAlign = "center";
     ctx.fillText("Key Levels", r.x + r.w / 2, cy + 9);
     cy += 14;
-    ctx.strokeStyle = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    ctx.strokeStyle = t.hairline;
     ctx.beginPath();
     ctx.moveTo(r.x + pad, cy);
     ctx.lineTo(r.x + r.w - pad, cy);
@@ -749,7 +745,7 @@ function drawKeyLevels(ctx, data, r, isDark) {
     const sectionFont = '8px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     const priceFont = 'bold 9px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     const metaFont = '8px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    const dimColor = isDark ? "#7f8498" : "#7b8190";
+    const dimColor = t.text_dim;
     const drawLevel = (level, y) => {
         if (y + 15 > r.y + r.h - 4)
             return y;
@@ -765,7 +761,7 @@ function drawKeyLevels(ctx, data, r, isDark) {
         const priceX = r.x + pad + 10;
         const percentX = r.x + r.w - 2;
         ctx.font = priceFont;
-        ctx.fillStyle = isDark ? "#e4e6eb" : "#1f2937";
+        ctx.fillStyle = t.text_value;
         ctx.textAlign = "left";
         ctx.fillText(priceText, priceX, y + 9);
         const priceWidth = ctx.measureText(priceText).width;
@@ -800,7 +796,7 @@ function drawKeyLevels(ctx, data, r, isDark) {
     };
     cy = drawSection("▲ SHORT LEVELS", topAbove, RED, cy);
     if (topBelow.length > 0 && cy + 16 < r.y + r.h) {
-        ctx.strokeStyle = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+        ctx.strokeStyle = t.divider;
         ctx.beginPath();
         ctx.moveTo(r.x + pad, cy);
         ctx.lineTo(r.x + r.w - pad, cy);
@@ -810,7 +806,7 @@ function drawKeyLevels(ctx, data, r, isDark) {
     }
     ctx.restore();
 }
-function drawUserObjects(ctx, objects, data, r, viewStart, viewEnd, yStart, yEnd, isDark) {
+function drawUserObjects(ctx, objects, data, r, viewStart, viewEnd, yStart, yEnd, t) {
     if (objects.length === 0)
         return;
     const { yValues } = data;
@@ -928,7 +924,7 @@ function wheelView(v,delta,priceFraction){const factor=delta>0?1.1:.9,xSpan=clam
 CANVAS_CONTROLLER = r"""
 const config = JSON.parse(document.getElementById('chart-config').textContent);
 const data = config.data;
-const dark = config.theme !== 'light';
+const THEME = config.theme;   // color tokens from themes.py
 const canvas = document.getElementById('canvas'), tip = document.getElementById('tip');
 let ctx = canvas.getContext('2d');
 const logo = new Image();
@@ -942,25 +938,24 @@ if (config.brand && config.brand.logo) { brandLogo.onload = ()=>{brandLogoReady=
 // figure fractions with a bottom-left origin and font sizes in points.
 const BRAND_LAYOUT = {x0:.075, x1:.925, titleTop:.955, subtitleTop:.895, sourceBottom:.085, footerBottom:.025,
  logoBox:[.83,.025,.14,.065], figWidthPt:1152, titlePt:23, subtitlePt:10, sourcePt:11, footerPt:12, chartBottom:.20};
-const TITLE_FONT='"STIXGeneral","STIX Two Text","STIX","Times New Roman",Times,serif';
 const BODY_FONT='"DejaVu Sans",Verdana,Geneva,sans-serif';
 const pt2px = pt => pt/BRAND_LAYOUT.figWidthPt*width;   // same relative scale as the Matplotlib figure
-function brandColors(){ return dark ? {title:'#e4e6eb',subtitle:'#9aa3b3',text:'#9aa3b3'} : {title:'#241E18',subtitle:'#887767',text:'#76695D'}; }
+function brandColors(){ return {title:THEME.brand_title, subtitle:THEME.brand_subtitle, text:THEME.brand_text}; }
 function drawTextRun(parts, x, y){ // parts: [{text, bold, px}] drawn in sequence (bold labels, as in printable_plot)
  ctx.textAlign='left'; let cx=x;
  for(const part of parts){ ctx.font=(part.bold?'bold ':'')+part.px+'px '+BODY_FONT; ctx.fillText(part.text,cx,y); cx+=ctx.measureText(part.text).width; }
  return cx; }
 function drawBranding(){
  const c=brandColors(), B=BRAND_LAYOUT, x0=B.x0*width;
- // Title: x0, top at 0.955 (va='top'), 23 pt, STIXGeneral bold, #241E18.
+ // Title: x0, top at 0.955 (va='top'), 23 pt, bold, theme title font and color.
  const titlePx=pt2px(B.titlePt);
- ctx.fillStyle=c.title; ctx.textAlign='left'; ctx.font='bold '+titlePx+'px '+TITLE_FONT;
+ ctx.fillStyle=c.title; ctx.textAlign='left'; ctx.font='bold '+titlePx+'px '+THEME.title_font;
  ctx.fillText(config.title, x0, (1-B.titleTop)*height + titlePx*.78);
- // Subtitle: x0, top at 0.895, 10 pt, #887767.
+ // Subtitle: x0, top at 0.895, 10 pt.
  const subPx=pt2px(B.subtitlePt);
  ctx.fillStyle=config.demo?'#c58a35':c.subtitle; ctx.font=subPx+'px '+BODY_FONT;
  ctx.fillText(config.subtitle, x0, (1-B.subtitleTop)*height + subPx*.78);
- // Source: lower-left anchor at (x0, 0.085), 11 pt, bold label, #76695D.
+ // Source: lower-left anchor at (x0, 0.085), 11 pt, bold label.
  const srcPx=pt2px(B.sourcePt);
  ctx.fillStyle=c.text;
  drawTextRun([{text:'Source: ',bold:true,px:srcPx},{text:config.brand.source,bold:false,px:srcPx}], x0, (1-B.sourceBottom)*height - srcPx*.22);
@@ -979,32 +974,32 @@ function drawBranding(){
 const lut = heatmapLut(config.palette);
 const cache = buildHeatmapCache(data, lut);
 let view = {start:0,end:1,yStart:0,yEnd:1}, layout, width, height, hover=null, drag=null, tool='pan', pending=null, objects=[];
-// As in printable_plot (background_alpha=0, figure_background_alpha=0): exported PNG/SVG have no opaque background.
+// As in printable_plot: the Alphractal themes export with their background; classic exports stay transparent.
 let exporting=false;
 const finite=v=>typeof v==='number' && Number.isFinite(v);
-function label(message,r) { ctx.fillStyle=dark?TEXT_DARK:TEXT_LIGHT;ctx.font=FONT;ctx.textAlign='center';ctx.fillText(message,r.x+r.w/2,r.y+r.h/2); }
+function label(message,r) { ctx.fillStyle=THEME.text;ctx.font=FONT;ctx.textAlign='center';ctx.fillText(message,r.x+r.w/2,r.y+r.h/2); }
 function draw(){
  const dpr=window.devicePixelRatio||1;
  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
- if(!exporting){ctx.fillStyle=dark?BG_DARK:BG_LIGHT;ctx.fillRect(0,0,width,height);} // background on screen only; exports stay transparent
+ if(!exporting||THEME.export_background){ctx.fillStyle=THEME.background;ctx.fillRect(0,0,width,height);}
  drawBranding();
  const {start,end,yStart,yEnd}=view;
  drawHeatmap(ctx,cache,layout.heatmap,start,end,yStart,yEnd,config.smoothing==='best');
  drawCandlesticks(ctx,data,layout.heatmap,start,end,yStart,yEnd);
- drawAxes(ctx,data,layout,start,end,yStart,yEnd,dark);
- if(finite(data.currentPrice))drawCurrentPriceLine(ctx,data,layout.heatmap,yStart,yEnd,dark);
+ drawAxes(ctx,data,layout,start,end,yStart,yEnd,THEME);
+ if(finite(data.currentPrice))drawCurrentPriceLine(ctx,data,layout.heatmap,yStart,yEnd,THEME);
  if(finite(data.currentPrice)&&finite(data.totalLongsSum)&&finite(data.totalShortsSum)){
-  drawRightPanel(ctx,data,layout.rightPanel,dark,yStart,yEnd);drawKeyLevels(ctx,data,layout.keyLevels,dark);
+  drawRightPanel(ctx,data,layout.rightPanel,THEME,yStart,yEnd);drawKeyLevels(ctx,data,layout.keyLevels,THEME);
  }else{label('Última data incompleta',layout.rightPanel);label('Key Levels · N/D',layout.keyLevels);}
  const begin=Math.floor(start*data.timestamps.length), stop=Math.ceil(end*data.timestamps.length);
  if(data.totalLongs.slice(begin,stop).every(finite)&&data.totalShorts.slice(begin,stop).every(finite)){
-  drawAccumPanel(ctx,data,layout.accumPanel,start,end,dark);drawDeltaPanel(ctx,data,layout.deltaPanel,start,end,dark);
+  drawAccumPanel(ctx,data,layout.accumPanel,start,end,THEME);drawDeltaPanel(ctx,data,layout.deltaPanel,start,end,THEME);
  }else{label('N/D · há datas sem preço ou células ausentes',layout.accumPanel);label('N/D · dados incompletos',layout.deltaPanel);}
- drawColorBar(ctx,data.maxZ,lut,layout.colorBar,dark);drawPanelLabels(ctx,layout,dark);drawScrollbar(ctx,layout.scrollbar,start,end,dark);
- drawUserObjects(ctx,objects,data,layout.heatmap,start,end,yStart,yEnd,dark);
+ drawColorBar(ctx,data.maxZ,lut,layout.colorBar,THEME);drawPanelLabels(ctx,layout,THEME);drawScrollbar(ctx,layout.scrollbar,start,end,THEME);
+ drawUserObjects(ctx,objects,data,layout.heatmap,start,end,yStart,yEnd,THEME);
  if(logo.complete&&logo.naturalWidth){const r=layout.heatmap,w=Math.min(360,r.w*.56),h=w*logo.naturalHeight/logo.naturalWidth;
   ctx.save();ctx.globalAlpha=.28;ctx.drawImage(logo,r.x+(r.w-w)/2,r.y+(r.h-h)/2,w,h);ctx.restore();}
- if(hover&&isInRect(hover.x,hover.y,layout.heatmap))drawCrosshair(ctx,hover.x,hover.y,layout.heatmap,dark);
+ if(hover&&isInRect(hover.x,hover.y,layout.heatmap))drawCrosshair(ctx,hover.x,hover.y,layout.heatmap,THEME);
  const first=Math.floor(start*(data.timestamps.length-1)),last=Math.ceil(end*(data.timestamps.length-1));
  const status=document.getElementById('view-status');
  const text='Período visível: '+new Date(data.timestamps[first]).toISOString().slice(0,16).replace('T',' ')+' — '+new Date(data.timestamps[last]).toISOString().slice(0,16).replace('T',' ')+' UTC';
